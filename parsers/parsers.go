@@ -1,4 +1,4 @@
-package pcomb
+package parsers
 
 import (
 	"unicode/utf8"
@@ -45,6 +45,12 @@ func (s *State) Match(p Parser) bool {
 	return p(s)
 }
 
+type Result interface {
+	Success() bool
+	String() string
+	Next() []byte
+}
+
 type Parser func(s *State) bool
 
 func String(str string) Parser {
@@ -81,7 +87,7 @@ func Seq(parsers ...Parser) Parser {
 		m := s.Pos()
 		for _, p := range parsers {
 			b = p(s)
-			if b {
+			if !b {
 				s.SetPos(m)
 				break
 			}

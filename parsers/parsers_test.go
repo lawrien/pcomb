@@ -1,4 +1,4 @@
-package pcomb
+package parsers
 
 import (
 	"fmt"
