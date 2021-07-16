@@ -41,9 +41,9 @@ func (suite *PcombSuite) TestMatch() {
 	for i, test := range tests {
 
 		s := NewState([]byte(test.Input))
-		m := s.Match(test.Parser)
+		res := s.Match(test.Parser)
 
-		assert.Equal(suite.T(), test.Match, m, fmt.Sprintf("test [%d]. Expected %v, got %v", i, test.Match, m))
+		assert.Equal(suite.T(), test.Match, res.Ok, fmt.Sprintf("test [%d]. Expected %v, got %v", i, test.Match, res.Ok))
 	}
 }
 

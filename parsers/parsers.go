@@ -1,11 +1,6 @@
 package parsers
 
-import (
-	"unicode/utf8"
-)
-
-const EOF = rune(0)
-const EOL = rune('\n')
+const EOL = byte('\n')
 
 type State struct {
 	buf      []byte
@@ -25,41 +20,31 @@ func (s *State) SetPos(p int) {
 	s.pos = p
 }
 
-func (s *State) Read() (r rune) {
-	var size int
-
+func (s *State) Read() (b byte) {
 	if s.pos < len(s.buf) {
-		r, size = utf8.DecodeRune(s.buf[s.pos:])
-		s.pos += size
-		if r == EOL {
+		b = s.buf[s.pos]
+		s.pos += 1
+		if b == EOL {
 			s.newlines = append(s.newlines, s.pos)
 		}
-	} else {
-		r = EOF
 	}
 
 	return
 }
 
-func (s *State) Match(p Parser) bool {
+func (s *State) Match(p Parser) Result {
 	return p(s)
 }
 
-type Result interface {
+type Result struct {
+	Ok    bool
+	Bytes []byte
 }
 
-type Failure struct {
-	Result
-}
-
-type Success struct {
-	Result
-}
-
-type Parser func(s *State) bool
+type Parser func(s *State) Result
 
 func (p Parser) Map(fn func()) Parser {
-	return func(s *State) bool {
+	return func(s *State) Result {
 		r := p(s)
 		fn()
 		return r
@@ -67,15 +52,14 @@ func (p Parser) Map(fn func()) Parser {
 }
 
 func String(str string) Parser {
-	return func(s *State) bool {
-		m := s.Pos()
-		for _, r := range str {
+	bytes := []byte(str)
+	return func(s *State) Result {
+		for _, r := range bytes {
 			if r != s.Read() {
-				s.SetPos(m)
-				return false
+				return Result{Ok: false}
 			}
 		}
-		return true
+		return Result{Ok: true, Bytes: bytes}
 	}
 }
 
@@ -84,24 +68,26 @@ func Char(r rune) Parser {
 }
 
 func Either(parsers ...Parser) Parser {
-	return func(s *State) (b bool) {
+	return func(s *State) (r Result) {
+		mark := s.pos
 		for _, p := range parsers {
-			b = p(s)
-			if b {
+			r = p(s)
+			if r.Ok {
 				break
 			}
+			s.pos = mark
 		}
 		return
 	}
 }
 
 func Seq(parsers ...Parser) Parser {
-	return func(s *State) (b bool) {
-		m := s.Pos()
+	return func(s *State) (r Result) {
+		mark := s.pos
 		for _, p := range parsers {
-			b = p(s)
-			if !b {
-				s.SetPos(m)
+			r = p(s)
+			if !r.Ok {
+				s.pos = mark
 				break
 			}
 		}
