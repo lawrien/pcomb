@@ -46,12 +46,25 @@ func (s *State) Match(p Parser) bool {
 }
 
 type Result interface {
-	Success() bool
-	String() string
-	Next() []byte
+}
+
+type Failure struct {
+	Result
+}
+
+type Success struct {
+	Result
 }
 
 type Parser func(s *State) bool
+
+func (p Parser) Map(fn func()) Parser {
+	return func(s *State) bool {
+		r := p(s)
+		fn()
+		return r
+	}
+}
 
 func String(str string) Parser {
 	return func(s *State) bool {
