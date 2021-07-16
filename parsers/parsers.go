@@ -8,8 +8,8 @@ type State struct {
 	newlines []int
 }
 
-func NewState(b []byte) *State {
-	return &State{buf: b}
+func NewState() *State {
+	return &State{}
 }
 
 func (s State) Pos() int {
@@ -32,7 +32,16 @@ func (s *State) Read() (b byte) {
 	return
 }
 
-func (s *State) Match(p Parser) Result {
+func (s *State) Reset() {
+	s.buf = []byte{}
+	s.pos = 0
+	s.newlines = []int{}
+}
+
+func (s *State) Match(b []byte, p Parser) Result {
+	s.Reset()
+	s.buf = b
+
 	return p(s)
 }
 
@@ -42,12 +51,11 @@ type Result struct {
 }
 
 type Parser func(s *State) Result
+type Mapper func(r Result) Result
 
-func (p Parser) Map(fn func()) Parser {
+func (p Parser) Map(m Mapper) Parser {
 	return func(s *State) Result {
-		r := p(s)
-		fn()
-		return r
+		return m(p(s))
 	}
 }
 
